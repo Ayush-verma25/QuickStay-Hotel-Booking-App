@@ -30,7 +30,6 @@ export const checkAvailabilityAPI = async (req, res) => {
   try {
     const { room, checkInDate, checkOutDate } = req.body;
 
-    // Validate required fields
     if (!room || !checkInDate || !checkOutDate) {
       return res.status(400).json({
         success: false,
@@ -56,7 +55,6 @@ export const createBooking = async (req, res) => {
   try {
     const { room, checkInDate, checkOutDate, guests } = req.body;
 
-    // Check if user is authenticated
     if (!req.user || !req.user._id) {
       return res.status(401).json({
         success: false,
@@ -66,7 +64,6 @@ export const createBooking = async (req, res) => {
 
     const user = req.user._id;
 
-    // Validate required fields
     if (!room || !checkInDate || !checkOutDate || !guests) {
       return res.status(400).json({
         success: false,
@@ -75,9 +72,26 @@ export const createBooking = async (req, res) => {
       });
     }
 
+    // Validate guests is a real positive number (parseInt silently returns NaN otherwise)
+    const guestCount = parseInt(guests, 10);
+    if (isNaN(guestCount) || guestCount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Guests must be a valid positive number",
+      });
+    }
+
     // Validate dates
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
+
+    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid check-in or check-out date",
+      });
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -119,48 +133,67 @@ export const createBooking = async (req, res) => {
       });
     }
 
+    if (!roomData.hotel) {
+      return res.status(404).json({
+        success: false,
+        message: "Hotel data missing for this room",
+      });
+    }
+
     // Calculate total price based on nights
     const timeDiff = checkOut.getTime() - checkIn.getTime();
     const nights = Math.ceil(timeDiff / (1000 * 3600 * 24));
     const totalPrice = roomData.pricePerNight * nights;
 
-    console.log("Calculated total price:", totalPrice); // Debug log
-
-    // Create booking with correct field name (use totelPrice to match your schema)
+    // Create booking (totelPrice matches the existing schema field name)
     const booking = await Booking.create({
       user,
       room,
       hotel: roomData.hotel._id,
-      guests: parseInt(guests),
+      guests: guestCount,
       checkInDate: checkIn,
       checkOutDate: checkOut,
-      totelPrice: totalPrice, // Changed from totalPrice to totelPrice to match schema
+      totelPrice: totalPrice,
     });
 
-    const mailOptions = {
-      from: process.env.SENDER_EMAIL,
-      to: req.user.email,
-      subject: "Hotel Booking Confirmation",
-      html: `
-      <h2>Your booking Details</h2>
-      <p>Dear ${req.user.username},</p>
-      <p>Thank you for Your booking! Here are your booking details:</p>
-      <ul>
-      <li><strong>Booking ID:</strong> ${booking._id}</li>
-      <li><strong>Hotel Name:</strong> ${roomData.hotel.name}</li>
-      <li><strong>Location:</strong> ${roomData.hotel.address}</li>
-      <li><strong>Date:</strong> ${booking.checkInDate.toLocaleDateString()}</li>
-      <li><strong>Booking Amount:</strong> ${process.env.CURRENCY || "$"} ${
-        booking.totelPrice
-      } / night</li>
-      </ul>
-      <p>We look forward to welcome you!</p>
-      <p>If you need to make any changes or cancel your booking, please contact us.</p>
-      <p>Thank you for choosing our services!</p>
-      `,
-    };
+    // IMPORTANT: the booking has already been created successfully above.
+    // Email is a nice-to-have — it must NEVER cause the booking request to fail.
+    // In production this is the #1 cause of "booking doesn't work" reports:
+    // SMTP is blocked/misconfigured on the host, so sendMail throws, and
+    // (with no try/catch) the whole request used to 500 even though the
+    // booking already existed in the database.
+    try {
+      const mailOptions = {
+        from: process.env.SENDER_EMAIL,
+        to: req.user.email,
+        subject: "Hotel Booking Confirmation",
+        html: `
+        <h2>Your booking Details</h2>
+        <p>Dear ${req.user.username},</p>
+        <p>Thank you for Your booking! Here are your booking details:</p>
+        <ul>
+        <li><strong>Booking ID:</strong> ${booking._id}</li>
+        <li><strong>Hotel Name:</strong> ${roomData.hotel.name}</li>
+        <li><strong>Location:</strong> ${roomData.hotel.address}</li>
+        <li><strong>Date:</strong> ${booking.checkInDate.toLocaleDateString()}</li>
+        <li><strong>Booking Amount:</strong> ${
+          process.env.CURRENCY || "$"
+        } ${booking.totelPrice} / night</li>
+        </ul>
+        <p>We look forward to welcome you!</p>
+        <p>If you need to make any changes or cancel your booking, please contact us.</p>
+        <p>Thank you for choosing our services!</p>
+        `,
+      };
 
-    await transporter.sendMail(mailOptions);
+      await transporter.sendMail(mailOptions);
+    } catch (emailError) {
+      // Log it so you can see failures in production logs, but do not fail the booking.
+      console.error(
+        "Booking confirmation email failed to send:",
+        emailError.message,
+      );
+    }
 
     res.status(201).json({
       success: true,
@@ -171,6 +204,7 @@ export const createBooking = async (req, res) => {
     console.log("Booking creation error:", error);
     res.status(500).json({
       success: false,
+      // Surface the real reason in logs; keep the client message generic but useful
       message: "Failed to create booking. Please try again.",
     });
   }
@@ -180,7 +214,6 @@ export const createBooking = async (req, res) => {
 // GET /api/bookings/user
 export const getUserBookings = async (req, res) => {
   try {
-    // Check if user is authenticated
     if (!req.user || !req.user._id) {
       return res.status(401).json({
         success: false,
@@ -207,8 +240,12 @@ export const getUserBookings = async (req, res) => {
 // GET /api/bookings/hotel
 export const getHotelBookings = async (req, res) => {
   try {
-    // Check if user is authenticated (assuming req.auth() is used for hotel owners)
-    if (!req.auth() || !req.auth().userId) {
+    // NOTE: this route uses req.auth() (Clerk-style) while the routes above use
+    // req.user. If these two auth patterns aren't BOTH wired up correctly by
+    // your middleware in production, this endpoint will silently 401 there
+    // even though it works locally. Confirm your production auth middleware
+    // actually populates req.auth() on this route before relying on this as-is.
+    if (!req.auth || !req.auth() || !req.auth().userId) {
       return res.status(401).json({
         success: false,
         message: "Hotel owner not authenticated",
@@ -228,12 +265,9 @@ export const getHotelBookings = async (req, res) => {
       .populate("room hotel user")
       .sort({ createdAt: -1 });
 
-    // Total Bookings
     const totalBookings = bookings.length;
-
-    // Total Revenue (using totelPrice to match schema)
     const totalRevenue = bookings.reduce(
-      (acc, booking) => acc + booking.totelPrice,
+      (acc, booking) => acc + (booking.totelPrice || 0),
       0,
     );
 
@@ -254,10 +288,50 @@ export const stripePayment = async (req, res) => {
   try {
     const { bookingId } = req.body;
 
+    if (!bookingId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "bookingId is required" });
+    }
+
     const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Booking not found" });
+    }
+
     const roomData = await Room.findById(booking.room).populate("hotel");
+    if (!roomData || !roomData.hotel) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Room or hotel data not found" });
+    }
+
     const totelPrice = booking.totelPrice;
-    const { origin } = req.headers;
+
+    // Don't trust req.headers.origin in production — behind proxies/CDNs it can
+    // be missing or wrong, which produces broken redirect URLs like
+    // "undefined/loader/my-bookings". Prefer an explicit env var and fall back
+    // to the origin header only if it's actually present.
+    const baseUrl = process.env.CLIENT_URL || req.headers.origin;
+
+    if (!baseUrl) {
+      console.error(
+        "stripePayment: no CLIENT_URL env var set and no Origin header present",
+      );
+      return res.status(500).json({
+        success: false,
+        message: "Server misconfiguration: missing client URL for redirect",
+      });
+    }
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error("stripePayment: STRIPE_SECRET_KEY is not set");
+      return res
+        .status(500)
+        .json({ success: false, message: "Payment configuration error" });
+    }
 
     const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -268,23 +342,27 @@ export const stripePayment = async (req, res) => {
           product_data: {
             name: roomData.hotel.name,
           },
-          unit_amount: totelPrice * 100,
+          unit_amount: Math.round(totelPrice * 100),
         },
         quantity: 1,
       },
     ];
-    // Create Checkout session
+
     const session = await stripeInstance.checkout.sessions.create({
       line_items,
       mode: "payment",
-      success_url: `${origin}/loader/my-bookings`,
-      cancel_url: `${origin}/my-bookings`,
+      success_url: `${baseUrl}/loader/my-bookings`,
+      cancel_url: `${baseUrl}/my-bookings`,
       metadata: {
         bookingId,
       },
     });
+
     res.json({ success: true, url: session.url });
   } catch (error) {
-    res.json({ success: false, message: "Payment Failed" });
+    console.error("Stripe payment error:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Payment Failed", error: error.message });
   }
 };
