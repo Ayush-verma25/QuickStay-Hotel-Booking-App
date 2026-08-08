@@ -7,11 +7,14 @@ import stripe from "stripe";
 // Function to check Availability of Room
 const checkAvailability = async ({ checkInDate, checkOutDate, room }) => {
   try {
-    // Simplified - the $or with a single clause was redundant
     const bookings = await Booking.find({
       room,
-      checkInDate: { $lte: new Date(checkOutDate) },
-      checkOutDate: { $gte: new Date(checkInDate) },
+      $or: [
+        {
+          checkInDate: { $lte: new Date(checkOutDate) },
+          checkOutDate: { $gte: new Date(checkInDate) },
+        },
+      ],
     });
     const isAvailable = bookings.length === 0;
     return isAvailable;
@@ -75,21 +78,8 @@ export const createBooking = async (req, res) => {
     // Validate dates
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
-
-    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid check-in or check-out date",
-      });
-    }
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    // FIX: previously only "today" had its time zeroed, so a checkInDate that
-    // included a time component was compared unfairly against midnight.
-    const checkInDateOnly = new Date(checkIn);
-    checkInDateOnly.setHours(0, 0, 0, 0);
 
     if (checkIn >= checkOut) {
       return res.status(400).json({
@@ -98,7 +88,7 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    if (checkInDateOnly < today) {
+    if (checkIn < today) {
       return res.status(400).json({
         success: false,
         message: "Check-in date cannot be in the past",
@@ -136,9 +126,7 @@ export const createBooking = async (req, res) => {
 
     console.log("Calculated total price:", totalPrice); // Debug log
 
-    // NOTE: your Booking schema currently stores this field as "totelPrice"
-    // (typo, but required by the existing schema). Writing to "totalPrice"
-    // here will fail validation until the schema itself is renamed.
+    // Create booking with correct field name (use totelPrice to match your schema)
     const booking = await Booking.create({
       user,
       room,
@@ -146,9 +134,7 @@ export const createBooking = async (req, res) => {
       guests: parseInt(guests),
       checkInDate: checkIn,
       checkOutDate: checkOut,
-      totelPrice: totalPrice,
-      isPaid: false, // becomes true once the Stripe webhook confirms payment
-      paymentMethod: "Pay At Hotel", // overwritten to "Stripe" on successful payment
+      totelPrice: totalPrice, // Changed from totalPrice to totelPrice to match schema
     });
 
     const mailOptions = {
@@ -163,11 +149,10 @@ export const createBooking = async (req, res) => {
       <li><strong>Booking ID:</strong> ${booking._id}</li>
       <li><strong>Hotel Name:</strong> ${roomData.hotel.name}</li>
       <li><strong>Location:</strong> ${roomData.hotel.address}</li>
-      <li><strong>Check-in:</strong> ${booking.checkInDate.toLocaleDateString()}</li>
-      <li><strong>Check-out:</strong> ${booking.checkOutDate.toLocaleDateString()}</li>
-      <li><strong>Total Amount:</strong> ${process.env.CURRENCY || "$"} ${
+      <li><strong>Date:</strong> ${booking.checkInDate.toLocaleDateString()}</li>
+      <li><strong>Booking Amount:</strong> ${process.env.CURRENCY || "$"} ${
         booking.totelPrice
-      }</li>
+      } / night</li>
       </ul>
       <p>We look forward to welcome you!</p>
       <p>If you need to make any changes or cancel your booking, please contact us.</p>
@@ -222,7 +207,7 @@ export const getUserBookings = async (req, res) => {
 // GET /api/bookings/hotel
 export const getHotelBookings = async (req, res) => {
   try {
-    // Check if user is authenticated (Clerk auth for hotel owners)
+    // Check if user is authenticated (assuming req.auth() is used for hotel owners)
     if (!req.auth() || !req.auth().userId) {
       return res.status(401).json({
         success: false,
@@ -246,7 +231,7 @@ export const getHotelBookings = async (req, res) => {
     // Total Bookings
     const totalBookings = bookings.length;
 
-    // NOTE: reading from "totelPrice" to match the existing schema field name
+    // Total Revenue (using totelPrice to match schema)
     const totalRevenue = bookings.reduce(
       (acc, booking) => acc + booking.totelPrice,
       0,
@@ -265,62 +250,13 @@ export const getHotelBookings = async (req, res) => {
   }
 };
 
-// API to create a Stripe Checkout session for a booking
-// POST /api/bookings/stripe-payment
 export const stripePayment = async (req, res) => {
   try {
     const { bookingId } = req.body;
 
-    // FIX: added authentication + ownership checks (previously anyone
-    // could pay for/inspect any bookingId) and existence checks so the
-    // handler doesn't throw when booking/roomData is null.
-    if (!req.user || !req.user._id) {
-      return res.status(401).json({
-        success: false,
-        message: "User not authenticated. Please login to continue.",
-      });
-    }
-
-    if (!bookingId) {
-      return res.status(400).json({
-        success: false,
-        message: "Booking ID is required",
-      });
-    }
-
     const booking = await Booking.findById(bookingId);
-
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
-    }
-
-    if (booking.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not authorized to pay for this booking",
-      });
-    }
-
-    if (booking.isPaid) {
-      return res.status(400).json({
-        success: false,
-        message: "This booking has already been paid for",
-      });
-    }
-
     const roomData = await Room.findById(booking.room).populate("hotel");
-
-    if (!roomData) {
-      return res.status(404).json({
-        success: false,
-        message: "Room not found",
-      });
-    }
-
-    const totalPrice = booking.totelPrice; // schema field is spelled "totelPrice"
+    const totelPrice = booking.totelPrice;
     const { origin } = req.headers;
 
     const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
@@ -328,16 +264,15 @@ export const stripePayment = async (req, res) => {
     const line_items = [
       {
         price_data: {
-          currency: (process.env.CURRENCY || "usd").toLowerCase(),
+          currency: "usd",
           product_data: {
             name: roomData.hotel.name,
           },
-          unit_amount: Math.round(totalPrice * 100),
+          unit_amount: totelPrice * 100,
         },
         quantity: 1,
       },
     ];
-
     // Create Checkout session
     const session = await stripeInstance.checkout.sessions.create({
       line_items,
@@ -348,66 +283,8 @@ export const stripePayment = async (req, res) => {
         bookingId,
       },
     });
-
     res.json({ success: true, url: session.url });
   } catch (error) {
-    console.log("Stripe payment error:", error);
-    res.status(500).json({ success: false, message: "Payment Failed" });
-  }
-};
-
-// API/Webhook to receive Stripe payment confirmation and update the booking
-// POST /api/bookings/stripe (must be mounted with express.raw({type: "application/json"}))
-export const stripeWebhooks = async (req, res) => {
-  const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY);
-  const sig = req.headers["stripe-signature"];
-
-  let event;
-
-  try {
-    // req.body MUST be the raw, unparsed request body for signature
-    // verification to succeed - see the route setup note below.
-    event = stripeInstance.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET,
-    );
-  } catch (error) {
-    console.log("Webhook signature verification failed:", error.message);
-    return res.status(400).send(`Webhook Error: ${error.message}`);
-  }
-
-  try {
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object;
-        const { bookingId } = session.metadata || {};
-
-        if (bookingId) {
-          await Booking.findByIdAndUpdate(bookingId, {
-            isPaid: true,
-            paymentMethod: "Stripe",
-          });
-          console.log(`Booking ${bookingId} marked as paid`);
-        }
-        break;
-      }
-
-      case "checkout.session.expired": {
-        const session = event.data.object;
-        console.log(
-          `Checkout session expired for booking ${session.metadata?.bookingId}`,
-        );
-        break;
-      }
-
-      default:
-        console.log(`Unhandled Stripe event type: ${event.type}`);
-    }
-
-    res.json({ received: true });
-  } catch (error) {
-    console.log("Webhook handler error:", error.message);
-    res.status(500).json({ received: false });
+    res.json({ success: false, message: "Payment Failed" });
   }
 };
