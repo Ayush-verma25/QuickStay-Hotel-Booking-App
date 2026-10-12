@@ -1,930 +1,561 @@
-🏨 Hotel Booking App — MERN Stack
-
-A full-stack hotel booking platform built with the MERN stack, Clerk authentication, Stripe Checkout, Cloudinary image uploads, and Nodemailer email notifications.
-
-The application supports two main user experiences:
-
-Guests can discover hotels/rooms, filter listings, check availability, create bookings, and pay securely through Stripe.
-
-Hotel owners can register their hotel, add rooms with images and amenities, manage room availability, and monitor bookings/revenue from an owner dashboard.
-
-✨ Key Features
-
-👤 Guest Features
-
-Clerk-based user authentication
-
-Browse available hotel rooms
-
-Search/filter rooms by:
-
-Destination/city
-
-Room type
-
-Price range
-
-Sort rooms by:
-
-Price: Low to High
-
-Price: High to Low
-
-Newest First
-
-View detailed room information
-
-Select check-in and check-out dates
-
-Check room availability before booking
-
-Select number of guests
-
-Create hotel bookings
-
-View personal booking history
-
-Pay for unpaid bookings using Stripe Checkout
-
-Receive booking confirmation emails
-
-Store recently searched cities
-
-🏢 Hotel Owner Features
-
-Register a new hotel
-
-Automatically switch the user role to hotelOwner
-
-Add rooms to the registered hotel
-
-Upload up to 4 room images
-
-Store images through Cloudinary
-
-Configure room type, price, and amenities
-
-Enable/disable room availability
-
-View hotel bookings
-
-View total booking count
-
-View total revenue
-
-View recent booking/payment status
-
-💳 Payment Integration
-
-Stripe Checkout session creation
-
-Booking-specific Stripe metadata
-
-Stripe webhook support
-
-Booking payment status update after successful payment
-
-Ownership/authentication checks before creating a payment session
-
-Prevents already-paid bookings from being paid again
-
-☁️ External Services
-
-Service
-
-Purpose
-
-MongoDB
-
-Application database
-
-Clerk
-
-Authentication and user identity
-
-Stripe
-
-Online payments
-
-Cloudinary
-
-Room image storage
-
-Nodemailer / SMTP
-
-Booking email notifications
-
-Vercel
-
-Deployment configuration
-
-🛠️ Tech Stack
-
-Frontend
-
-React 19
-
-Vite
-
-React Router
-
-Tailwind CSS
-
-Axios
-
-Clerk React
-
-React Hot Toast
-
-Backend
-
-Node.js
-
-Express.js
-
-MongoDB
-
-Mongoose
-
-Clerk Express
-
-Stripe
-
-Cloudinary
-
-Multer
-
-Nodemailer
-
-Svix
-
-Architecture
-
-React + Vite Client
-        │
-        │ Axios / REST API
-        ▼
-Express + Node.js Server
-        │
-        ├── Clerk Authentication
-        ├── Stripe Checkout / Webhooks
-        ├── Cloudinary Image Uploads
-        ├── Nodemailer
-        │
-        ▼
-     MongoDB
-
-📁 Project Structure
-
-Hotel Booking App/
-│
-├── client/
-│   ├── public/
+# 🏨 QuickStay – Hotel Booking App
+
+A full-stack **MERN** hotel booking platform where guests can discover hotel rooms, check live availability, book a stay and pay online, while hotel owners can register their property, publish rooms and track bookings and revenue from a dedicated dashboard.
+
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-Express_5-339933?logo=nodedotjs&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose_8-47A248?logo=mongodb&logoColor=white)
+![Clerk](https://img.shields.io/badge/Auth-Clerk-6C47FF)
+![Stripe](https://img.shields.io/badge/Payments-Stripe-635BFF?logo=stripe&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+---
+
+## 📑 Table of Contents
+
+1. [Overview](#-overview)
+2. [Features](#-features)
+3. [Tech Stack](#-tech-stack)
+4. [Architecture](#-architecture)
+5. [Project Structure](#-project-structure)
+6. [Data Models](#-data-models)
+7. [API Reference](#-api-reference)
+8. [Frontend Routes](#-frontend-routes)
+9. [Key Workflows](#-key-workflows)
+10. [Getting Started](#-getting-started)
+11. [Environment Variables](#-environment-variables)
+12. [Setting Up Webhooks](#-setting-up-webhooks)
+13. [Deployment](#-deployment)
+14. [Roadmap & Known Limitations](#-roadmap--known-limitations)
+15. [Contributing](#-contributing)
+16. [License](#-license)
+17. [Author](#-author)
+
+---
+
+## 📖 Overview
+
+QuickStay is a two-sided marketplace:
+
+- **Guests** browse rooms across cities, filter and sort them, check whether a room is free for their dates, book it, and pay securely through Stripe Checkout (or leave the booking unpaid and pay later from *My Bookings*).
+- **Hotel owners** sign in with the same account, register their hotel with one click, upload room photos, toggle room availability, and see total bookings and revenue on their dashboard.
+
+The repository is a monorepo with two independent apps:
+
+| Folder    | Description                                                    |
+| --------- | -------------------------------------------------------------- |
+| `client/` | React 19 + Vite single-page application (UI)                   |
+| `server/` | Node.js + Express 5 REST API with MongoDB, Stripe and Clerk    |
+
+---
+
+## ✨ Features
+
+### 👤 For Guests
+- 🔐 **Authentication** with Clerk (sign-up, sign-in, profile menu) – no custom password handling.
+- 🔎 **Destination search** from the hero section, with a city auto-suggest list.
+- 🏙️ **Recommended hotels** on the home page, based on your last 3 searched cities (stored per user).
+- 🛏️ **Browse all rooms** with filters (room type, price range) and sorting (price low→high, high→low, newest first).
+- 📸 **Room details page** with an image gallery, amenities, host info and a booking form.
+- 📅 **Live availability check** – prevents double-booking by detecting overlapping reservations.
+- 🧾 **Booking creation** with server-side validation (dates, guests, past dates) and automatic total-price calculation.
+- 📧 **Email confirmation** sent through SMTP (Brevo) after each booking.
+- 💳 **Online payment** via Stripe Checkout, with payment status updated by a signed webhook.
+- 📋 **My Bookings** page showing every reservation with a Paid / Unpaid badge and a *Pay Now* button.
+
+### 🏢 For Hotel Owners
+- 🏨 **"List Your Hotel"** registration form (name, phone, address, city) – promotes the user to the `hotelOwner` role.
+- 📊 **Dashboard** with total bookings, total revenue and a recent-bookings table (guest, room, amount, payment status).
+- ➕ **Add Room** – room type, price per night, amenities and up to **4 images** uploaded to Cloudinary.
+- 📃 **Room listings** with a one-click availability toggle.
+- 🛡️ **Protected owner area** – non-owners are redirected away from `/owner`.
+
+### ⚙️ Platform
+- 🔄 **Clerk → MongoDB user sync** through verified (Svix) webhooks for `user.created`, `user.updated` and `user.deleted`.
+- 🔒 **Signed Stripe webhooks** for trustworthy payment confirmation.
+- 📱 **Responsive UI** built with Tailwind CSS, including a mobile slide-in menu.
+- 🔔 **Toast notifications** for user feedback.
+- 🚀 **Vercel-ready** configuration for both client and server.
+
+---
+
+## 🧰 Tech Stack
+
+| Layer            | Technology                                                                 |
+| ---------------- | -------------------------------------------------------------------------- |
+| **Frontend**     | React 19, Vite 7, React Router 7, Tailwind CSS 4, Axios, React Hot Toast   |
+| **Backend**      | Node.js, Express 5, Mongoose 8, Multer, CORS, dotenv                       |
+| **Database**     | MongoDB (database name: `hotel-booking`)                                   |
+| **Auth**         | [Clerk](https://clerk.com) (`@clerk/clerk-react`, `@clerk/express`) + Svix for webhook verification |
+| **Payments**     | [Stripe](https://stripe.com) Checkout + webhooks                           |
+| **Media storage**| [Cloudinary](https://cloudinary.com)                                       |
+| **Email**        | Nodemailer via [Brevo](https://www.brevo.com) SMTP relay                   |
+| **Tooling**      | ESLint 9, Nodemon, Yarn                                                    |
+| **Hosting**      | Vercel (client and server)                                                 |
+
+---
+
+## 🏛️ Architecture
+
+```mermaid
+flowchart LR
+    A["React 19 + Vite SPA"] -->|"REST + Bearer token"| B["Express 5 API"]
+    A -->|"Sign-in / sign-up UI"| C["Clerk"]
+    B -->|"Verify session"| C
+    C -->|"user.* webhooks"| B
+    B --> D[("MongoDB (Mongoose)")]
+    B -->|"Upload room images"| E["Cloudinary"]
+    B -->|"Create Checkout session"| F["Stripe"]
+    F -->|"payment_intent.succeeded webhook"| B
+    B -->|"Booking confirmation email"| G["Brevo SMTP"]
+```
+
+**How the pieces fit together**
+
+1. The React app wraps everything in `ClerkProvider` → `BrowserRouter` → `AppProvider` (a global React Context).
+2. `AppProvider` sets the Axios base URL, loads all rooms, and, once a user is signed in, calls `GET /api/user` to learn their role (`user` / `hotelOwner`) and recent searches.
+3. Every protected request carries a Clerk session token in the `Authorization: Bearer <token>` header. The `protect` middleware reads the Clerk user ID, looks the user up in MongoDB and attaches it to `req.user`.
+4. Users are **created in MongoDB by the Clerk webhook**, not by the API itself (see [Setting Up Webhooks](#-setting-up-webhooks)).
+
+---
+
+## 📂 Project Structure
+
+```
+QuickStay-Hotel-Booking-App/
+├── client/                         # React + Vite frontend
+│   ├── public/                     # Static files (favicon)
 │   ├── src/
-│   │   ├── assets/
+│   │   ├── assets/                 # Images, SVG icons and assets.js (icons, cities, offers, testimonials)
 │   │   ├── components/
-│   │   │   └── hotelOwner/
-│   │   ├── context/
+│   │   │   ├── hotelOwner/         # Owner-area Navbar & Sidebar
+│   │   │   ├── ExclusiveOffers.jsx
+│   │   │   ├── FeaturedDestination.jsx
+│   │   │   ├── Footer.jsx
+│   │   │   ├── Hero.jsx            # Search form
+│   │   │   ├── HotelCard.jsx
+│   │   │   ├── HotelReg.jsx        # "Register your hotel" modal
+│   │   │   ├── Loader.jsx          # Post-payment redirect spinner
+│   │   │   ├── Navbar.jsx
+│   │   │   ├── NewsLetter.jsx
+│   │   │   ├── RecommendedHotels.jsx
+│   │   │   ├── StarRating.jsx
+│   │   │   ├── Testimonial.jsx
+│   │   │   └── Title.jsx
+│   │   ├── context/AppContext.jsx  # Global state: user role, rooms, searched cities, axios, currency
 │   │   ├── pages/
-│   │   │   └── hotelOwner/
-│   │   ├── App.jsx
-│   │   ├── App.css
-│   │   └── main.jsx
-│   ├── package.json
+│   │   │   ├── hotelOwner/         # Layout, Dashboard, AddRoom, ListRoom
+│   │   │   ├── AllRooms.jsx
+│   │   │   ├── Home.jsx
+│   │   │   ├── MyBookings.jsx
+│   │   │   └── RoomDetails.jsx
+│   │   ├── App.jsx                 # Routes
+│   │   ├── index.css               # Tailwind import, theme colours, fonts
+│   │   └── main.jsx                # Providers (Clerk, Router, AppContext)
+│   ├── vercel.json                 # SPA rewrite rule
 │   ├── vite.config.js
-│   └── vercel.json
-│
-├── server/
-│   ├── configs/
-│   │   ├── cloudinary.js
-│   │   ├── db.js
-│   │   └── nodemailer.js
-│   ├── controllers/
-│   │   ├── bookingController.js
-│   │   ├── clerkWebHooks.js
-│   │   ├── hotelController.js
-│   │   ├── roomController.js
-│   │   ├── stripeWebhooks.js
-│   │   └── userController.js
-│   ├── middleware/
-│   │   ├── authMiddleware.js
-│   │   └── uploadMiddleware.js
-│   ├── models/
-│   │   ├── Booking.js
-│   │   ├── Hotel.js
-│   │   ├── Room.js
-│   │   └── User.js
-│   ├── routes/
-│   │   ├── bookingRoutes.js
-│   │   ├── hotelRoutes.js
-│   │   ├── roomRoutes.js
-│   │   └── userRoutes.js
-│   ├── server.js
 │   └── package.json
 │
-└── README.md
-
-node_modules should not be committed to GitHub. The uploaded project archive contains installed dependencies, but a clean repository should rely on package.json/lock files instead.
-
-🔄 Application Flow
-
-Guest Booking Flow
-
-Login with Clerk
-      ↓
-Browse Rooms
-      ↓
-Select Room
-      ↓
-Choose Check-in / Check-out Dates
-      ↓
-Check Availability
-      ↓
-Create Booking
-      ↓
-Booking Stored in MongoDB
-      ↓
-Open "My Bookings"
-      ↓
-Pay Now
-      ↓
-Stripe Checkout
-      ↓
-Stripe Webhook
-      ↓
-Booking marked as Paid
-
-Hotel Owner Flow
-
-Login with Clerk
-      ↓
-Register Hotel
-      ↓
-User role → hotelOwner
-      ↓
-Owner Dashboard
-      ↓
-Add Room
-      ↓
-Upload Images → Cloudinary
-      ↓
-Room Stored in MongoDB
-      ↓
-Manage Availability
-      ↓
-Monitor Bookings & Revenue
-
-🔐 Authentication & Authorization
-
-The project uses Clerk for authentication.
-
-The backend authentication middleware:
-
-Reads the Clerk authenticated user ID.
-
-Finds the corresponding user in MongoDB.
-
-Attaches the database user to req.user.
-
-Rejects unauthenticated requests with HTTP 401.
-
-Example protected endpoints include:
-
-POST /api/hotels
-POST /api/rooms
-GET  /api/rooms/owner
-POST /api/rooms/toggle-availability
-POST /api/bookings/book
-GET  /api/bookings/user
-GET  /api/bookings/hotel
-POST /api/bookings/stripe-payment
-
-Clerk webhooks synchronize user creation, updates, and deletion with the application's MongoDB User collection.
-
-💳 Stripe Payment Flow
-
-The application creates a Stripe Checkout Session from an existing booking.
-
-Booking created
-   ↓
-isPaid = false
-   ↓
-User clicks "Pay Now"
-   ↓
-Backend validates booking ownership
-   ↓
-Stripe Checkout Session created
-   ↓
-User completes payment on Stripe
-   ↓
-Stripe sends webhook
-   ↓
-Booking is updated:
-isPaid = true
-paymentMethod = "Stripe"
-
-The Checkout Session stores the booking ID as metadata so the backend can identify the booking after payment.
-
-📡 API Endpoints
-
-User APIs
-
-Method
-
-Endpoint
-
-Description
-
-Auth
-
-GET
-
-/api/user/
-
-Get current user data/role
-
-✅
-
-POST
-
-/api/user/store-recent-search
-
-Store recent searched city
-
-✅
-
-Hotel APIs
-
-Method
-
-Endpoint
-
-Description
-
-Auth
-
-POST
-
-/api/hotels/
-
-Register a hotel
-
-✅
-
-Room APIs
-
-Method
-
-Endpoint
-
-Description
-
-Auth
-
-GET
-
-/api/rooms/
-
-Get available rooms
-
-❌
-
-POST
-
-/api/rooms/
-
-Create a room with images
-
-✅
-
-GET
-
-/api/rooms/owner
-
-Get owner's rooms
-
-✅
-
-POST
-
-/api/rooms/toggle-availability
-
-Toggle room availability
-
-✅
-
-Booking APIs
-
-Method
-
-Endpoint
-
-Description
-
-Auth
-
-POST
-
-/api/bookings/check-availability
-
-Check room availability
-
-❌
-
-POST
-
-/api/bookings/book
-
-Create booking
-
-✅
-
-GET
-
-/api/bookings/user
-
-Get current user's bookings
-
-✅
-
-GET
-
-/api/bookings/hotel
-
-Get owner's hotel bookings
-
-✅
-
-POST
-
-/api/bookings/stripe-payment
-
-Create Stripe Checkout Session
-
-✅
-
-Webhooks
-
-POST /api/clerk
-POST /api/stripe
-
-/api/clerk handles Clerk user lifecycle webhooks.
-
-/api/stripe handles Stripe payment webhooks.
-
-🗃️ MongoDB Data Models
-
-User
-
-Stores:
-
-Clerk user ID
-
-Username
-
-Email
-
-Profile image
-
-Role
-
-Recently searched cities
-
-Roles:
-
-user
-hotelOwner
-
-Hotel
-
-Stores:
-
-Hotel name
-
-Address
-
-Contact
-
-City
-
-Owner
-
-Room
-
-Stores:
-
-Hotel reference
-
-Room type
-
-Price per night
-
-Amenities
-
-Cloudinary image URLs
-
-Availability status
-
-Booking
-
-Stores:
-
-User
-
-Room
-
-Hotel
-
-Check-in date
-
-Check-out date
-
-Number of guests
-
-Total price
-
-Booking status
-
-Payment method
-
-Payment status
-
-⚙️ Environment Variables
-
-Client .env
-
-VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+└── server/                         # Express REST API
+    ├── configs/
+    │   ├── cloudinary.js           # Cloudinary SDK setup
+    │   ├── db.js                   # MongoDB connection
+    │   └── nodemailer.js           # Brevo SMTP transporter
+    ├── controllers/
+    │   ├── bookingController.js    # Availability, create booking, list bookings, Stripe payment session
+    │   ├── clerkWebHooks.js        # Syncs Clerk users to MongoDB
+    │   ├── hotelController.js      # Register hotel
+    │   ├── roomController.js       # Create / list rooms, toggle availability
+    │   ├── stripeWebhooks.js       # Marks bookings as paid (the handler mounted in server.js)
+    │   └── userController.js       # User role & recent searches
+    ├── middleware/
+    │   ├── authMiddleware.js       # `protect` – Clerk auth + DB user lookup
+    │   └── uploadMiddleware.js     # Multer (temporary disk storage)
+    ├── models/                     # Booking, Hotel, Room, User
+    ├── routes/                     # user, hotel, room, booking routers
+    ├── server.js                   # App entry point
+    ├── vercel.json                 # Vercel serverless config
+    └── package.json
+```
+
+---
+
+## 🗄️ Data Models
+
+All collections live in the `hotel-booking` database and use Mongoose timestamps (`createdAt`, `updatedAt`).
+
+> **Note:** relationships are stored as **string IDs** (`ref` to the related model). A user's `_id` is the **Clerk user ID**, not a MongoDB `ObjectId`.
+
+### `User`
+| Field                  | Type       | Notes                                         |
+| ---------------------- | ---------- | --------------------------------------------- |
+| `_id`                  | String     | Clerk user ID                                 |
+| `username`             | String     | First + last name from Clerk                  |
+| `email`                | String     | Primary email from Clerk                      |
+| `image`                | String     | Profile image URL                             |
+| `role`                 | String     | `"user"` (default) or `"hotelOwner"`          |
+| `recentSearchedCities` | [String]   | Last 3 searched cities                        |
+
+### `Hotel`
+| Field     | Type   | Notes                           |
+| --------- | ------ | ------------------------------- |
+| `name`    | String | Hotel name                      |
+| `address` | String | Street address                  |
+| `contact` | String | Phone number                    |
+| `city`    | String | One of the supported cities     |
+| `owner`   | String | Ref → `User` (one hotel per owner) |
+
+### `Room`
+| Field          | Type     | Notes                                          |
+| -------------- | -------- | ---------------------------------------------- |
+| `hotel`        | String   | Ref → `Hotel`                                  |
+| `roomType`     | String   | Single Bed, Double Bed, Luxury Room, Family Suite |
+| `pricePerNight`| Number   |                                                |
+| `amenities`    | Array    | e.g. Free WiFi, Free Breakfast, Room Service, Mountain View, Pool Access |
+| `images`       | [String] | Cloudinary secure URLs (max 4)                 |
+| `isAvailable`  | Boolean  | Default `true`; owner can toggle               |
+
+### `Booking`
+| Field          | Type    | Notes                                                    |
+| -------------- | ------- | -------------------------------------------------------- |
+| `user`         | String  | Ref → `User`                                             |
+| `room`         | String  | Ref → `Room`                                             |
+| `hotel`        | String  | Ref → `Hotel`                                            |
+| `checkInDate`  | Date    |                                                          |
+| `checkOutDate` | Date    |                                                          |
+| `totelPrice`   | Number  | Nights × `pricePerNight` (field name is spelled `totelPrice` in the schema) |
+| `guests`       | Number  |                                                          |
+| `status`       | String  | `pending` (default), `confirmed`, `cancelled`            |
+| `paymentMethod`| String  | `"Pay At Hotel"` initially → `"Stripe"` after payment    |
+| `isPaid`       | Boolean | Set to `true` by the Stripe webhook                      |
+
+---
+
+## 🔌 API Reference
+
+**Base URL (local):** `http://localhost:5000`
+
+Protected endpoints require the header:
+
+```
+Authorization: Bearer <Clerk session token>
+```
+
+### Health
+| Method | Endpoint | Auth | Description          |
+| ------ | -------- | ---- | -------------------- |
+| GET    | `/`      | –    | Returns "API is Working Fine." |
+
+### Users — `/api/user`
+| Method | Endpoint                         | Auth | Description                                              |
+| ------ | -------------------------------- | ---- | -------------------------------------------------------- |
+| GET    | `/api/user`                      | ✅   | Returns the user's `role` and `recentSearchedCities`     |
+| POST   | `/api/user/store-recent-search`  | ✅   | Body: `{ recentSearchedCity }` – keeps only the latest 3 |
+
+### Hotels — `/api/hotels`
+| Method | Endpoint       | Auth | Description                                                                  |
+| ------ | -------------- | ---- | ---------------------------------------------------------------------------- |
+| POST   | `/api/hotels`  | ✅   | Body: `{ name, address, contact, city }` – registers a hotel and sets role to `hotelOwner` |
+
+### Rooms — `/api/rooms`
+| Method | Endpoint                          | Auth | Description                                                                                  |
+| ------ | --------------------------------- | ---- | -------------------------------------------------------------------------------------------- |
+| GET    | `/api/rooms`                      | –    | All rooms where `isAvailable` is true (hotel + owner image populated), newest first          |
+| POST   | `/api/rooms`                      | ✅   | `multipart/form-data`: `roomType`, `pricePerNight`, `amenities` (JSON string), `images` (up to 4 files) |
+| GET    | `/api/rooms/owner`                | ✅   | Rooms belonging to the signed-in owner's hotel                                               |
+| POST   | `/api/rooms/toggle-availability`  | ✅   | Body: `{ roomId }` – flips `isAvailable`                                                     |
+
+### Bookings — `/api/bookings`
+| Method | Endpoint                          | Auth | Description                                                                                  |
+| ------ | --------------------------------- | ---- | -------------------------------------------------------------------------------------------- |
+| POST   | `/api/bookings/check-availability`| –    | Body: `{ room, checkInDate, checkOutDate }` → `{ success, isAvailable }`                     |
+| POST   | `/api/bookings/book`              | ✅   | Body: `{ room, checkInDate, checkOutDate, guests }` – validates, prices, saves and emails the guest |
+| GET    | `/api/bookings/user`              | ✅   | The signed-in user's bookings (room + hotel populated), newest first                         |
+| GET    | `/api/bookings/hotel`             | ✅   | Owner dashboard data: `{ totalBookings, totalRevenue, bookings }`                            |
+| POST   | `/api/bookings/stripe-payment`    | ✅   | Body: `{ bookingId }` – creates a Stripe Checkout session and returns `{ url }`              |
+
+### Webhooks
+| Method | Endpoint       | Source | Events handled                                      |
+| ------ | -------------- | ------ | --------------------------------------------------- |
+| POST   | `/api/clerk`   | Clerk (Svix-signed) | `user.created`, `user.updated`, `user.deleted` |
+| POST   | `/api/stripe`  | Stripe (signature-verified, raw body) | `payment_intent.succeeded` |
+
+### Typical response shape
+```json
+{ "success": true, "message": "Booking created successfully", "booking": { } }
+```
+Errors return `{ "success": false, "message": "..." }` with an appropriate HTTP status (400, 401, 403, 404, 409, 500).
+
+---
+
+## 🧭 Frontend Routes
+
+| Path                  | Component        | Access          | Description                                         |
+| --------------------- | ---------------- | --------------- | --------------------------------------------------- |
+| `/`                   | `Home`           | Public          | Hero search, recommended hotels, featured destinations, offers, testimonials, newsletter |
+| `/rooms`              | `AllRooms`       | Public          | Room listing with filters, sorting and `?destination=` search |
+| `/rooms/:id`          | `RoomDetails`    | Public (login required to book) | Gallery, amenities, availability check and booking form |
+| `/my-bookings`        | `MyBookings`     | Signed-in users | Booking history and *Pay Now*                       |
+| `/loader/:nexUrl`     | `Loader`         | –               | Spinner shown after Stripe checkout, then redirects to `/:nexUrl` after ~8 s |
+| `/owner`              | `Layout` → `Dashboard` | Hotel owners | Stats and recent bookings                     |
+| `/owner/add-room`     | `AddRoom`        | Hotel owners    | Create a room with images and amenities             |
+| `/owner/list-room`    | `ListRoom`       | Hotel owners    | Manage rooms and availability                       |
+
+---
+
+## 🔄 Key Workflows
+
+### 1. Authentication & user sync
+1. The user signs up or signs in with the Clerk modal.
+2. Clerk sends a `user.created` webhook to `POST /api/clerk`; the server verifies the Svix signature and inserts the user into MongoDB (using the Clerk ID as `_id`).
+3. From then on, the `protect` middleware can resolve `req.user` for every authenticated request.
+
+### 2. Becoming a hotel owner
+1. A signed-in user clicks **List Your Hotel** and submits the registration form.
+2. `POST /api/hotels` creates the `Hotel` (one per owner) and updates the user's role to `hotelOwner`.
+3. The navbar button changes to **Dashboard** and `/owner` becomes accessible.
+
+### 3. Booking & payment
+
+```mermaid
+sequenceDiagram
+    actor Guest
+    participant UI as React Client
+    participant API as Express API
+    participant DB as MongoDB
+    participant Stripe
+
+    Guest->>UI: Choose dates & guests, click "Check Availability"
+    UI->>API: POST /api/bookings/check-availability
+    API->>DB: Find overlapping bookings for the room
+    API-->>UI: isAvailable true/false
+
+    Guest->>UI: Click "Book Now"
+    UI->>API: POST /api/bookings/book (Bearer token)
+    API->>DB: Re-check availability, calculate price, save booking (isPaid=false)
+    API-->>Guest: Confirmation email
+    API-->>UI: Booking created → redirect to /my-bookings
+
+    Guest->>UI: Click "Pay Now"
+    UI->>API: POST /api/bookings/stripe-payment
+    API->>Stripe: Create Checkout session (metadata.bookingId)
+    API-->>UI: Checkout URL
+    UI->>Stripe: Redirect guest to Stripe
+    Stripe-->>API: Webhook payment_intent.succeeded
+    API->>DB: isPaid = true, paymentMethod = "Stripe"
+    Stripe-->>UI: Redirect to /loader/my-bookings → /my-bookings
+```
+
+**Availability rule:** a room is unavailable if any existing booking satisfies `existing.checkIn <= requested.checkOut` **and** `existing.checkOut >= requested.checkIn`.
+
+**Price rule:** `nights = ceil((checkOut − checkIn) / 1 day)`, `total = nights × pricePerNight`.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Node.js** v20.19+ (required by Vite 7) and **Yarn** (the repo ships `yarn.lock` files; npm also works)
+- A **MongoDB** database – local or [MongoDB Atlas](https://www.mongodb.com/atlas)
+- Free accounts for: [Clerk](https://clerk.com), [Cloudinary](https://cloudinary.com), [Stripe](https://stripe.com) (test mode) and [Brevo](https://www.brevo.com) (SMTP)
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/Ayush-verma25/QuickStay-Hotel-Booking-App.git
+cd QuickStay-Hotel-Booking-App
+```
+
+### 2. Set up the backend
+```bash
+cd server
+yarn install          # or: npm install
+```
+Create `server/.env` (see [Environment Variables](#-environment-variables)), then start the API:
+```bash
+yarn server           # development with nodemon
+# or
+yarn start            # production (node server.js)
+```
+The API runs on **http://localhost:5000** by default.
+
+### 3. Set up the frontend
+Open a second terminal:
+```bash
+cd client
+yarn install          # or: npm install
+```
+Create `client/.env` and start Vite:
+```bash
+yarn dev
+```
+The app runs on **http://localhost:5173**.
+
+### 4. Configure the webhooks
+Without the Clerk webhook, newly signed-up users will not exist in MongoDB and authenticated requests will fail with *"User not found"*. Follow [Setting Up Webhooks](#-setting-up-webhooks).
+
+### Available scripts
+
+| Where     | Command          | Purpose                          |
+| --------- | ---------------- | -------------------------------- |
+| `server/` | `yarn server`    | Start API with auto-reload (nodemon) |
+| `server/` | `yarn start`     | Start API with Node              |
+| `client/` | `yarn dev`       | Start Vite dev server            |
+| `client/` | `yarn build`     | Production build into `dist/`    |
+| `client/` | `yarn preview`   | Preview the production build     |
+| `client/` | `yarn lint`      | Run ESLint                       |
+
+---
+
+## 🔐 Environment Variables
+
+> ⚠️ Never commit real secrets. Both `.env` files are already listed in `.gitignore`.
+
+### `server/.env`
+
+| Variable                  | Required | Description                                                                 |
+| ------------------------- | :------: | --------------------------------------------------------------------------- |
+| `PORT`                    | No       | API port (defaults to `5000`)                                               |
+| `MONGODB_URL`             | ✅       | MongoDB connection string **without** a database name or trailing slash – the app appends `/hotel-booking` itself. Example: `mongodb+srv://user:pass@cluster0.xxxxx.mongodb.net` |
+| `CLERK_PUBLISHABLE_KEY`   | ✅       | Clerk publishable key                                                       |
+| `CLERK_SECRET_KEY`        | ✅       | Clerk secret key                                                            |
+| `CLERK_WEBHOOK_SECRET`    | ✅       | Signing secret of the Clerk webhook endpoint                                |
+| `CLOUDINARY_CLOUD_NAME`   | ✅       | Cloudinary cloud name                                                       |
+| `CLOUDINARY_API_KEY`      | ✅       | Cloudinary API key                                                          |
+| `CLOUDINARY_API_SECRET`   | ✅       | Cloudinary API secret                                                       |
+| `SMTP_USER`               | ✅       | Brevo SMTP login                                                            |
+| `SMTP_PASS`               | ✅       | Brevo SMTP key/password                                                     |
+| `SENDER_EMAIL`            | ✅       | Verified "from" address used for booking emails                             |
+| `STRIPE_SECRET_KEY`       | ✅       | Stripe secret key (`sk_test_...`)                                           |
+| `STRIPE_WEBHOOK_SECRET`   | ✅       | Stripe webhook signing secret (`whsec_...`)                                 |
+| `STRIPE_PUBLISHABLE_KEY`  | No       | Present in the template but not used by the current code                    |
+| `CURRENCY`                | No       | Currency **code** for Stripe, e.g. `usd` (defaults to `usd`)                |
+
+### `client/.env`
+
+| Variable                      | Required | Description                                                       |
+| ----------------------------- | :------: | ----------------------------------------------------------------- |
+| `VITE_CLERK_PUBLISHABLE_KEY`  | ✅       | Clerk publishable key (the app throws on start if missing)        |
+| `VITE_BACKEND_URL`            | ✅       | Base URL of the API, e.g. `http://localhost:5000`                 |
+| `VITE_CURRENCY`               | No       | Currency **symbol** shown in the UI, e.g. `$` (defaults to `$`)   |
+
+**Example templates**
+
+```env
+# server/.env
+MONGODB_URL=mongodb+srv://<user>:<password>@<cluster>.mongodb.net
+CLERK_PUBLISHABLE_KEY=pk_test_xxx
+CLERK_SECRET_KEY=sk_test_xxx
+CLERK_WEBHOOK_SECRET=whsec_xxx
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+SENDER_EMAIL=you@example.com
+SMTP_USER=your_brevo_login
+SMTP_PASS=your_brevo_smtp_key
+STRIPE_SECRET_KEY=sk_test_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+CURRENCY=usd
+```
+
+```env
+# client/.env
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxx
 VITE_BACKEND_URL=http://localhost:5000
 VITE_CURRENCY=$
+```
 
-Server .env
+---
 
-MONGODB_URL=your_mongodb_connection_string
+## 🪝 Setting Up Webhooks
 
-CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-CLERK_SECRET_KEY=your_clerk_secret_key
-CLERK_WEBHOOK_SECRET=your_clerk_webhook_secret
+### Clerk (user sync)
+1. In the Clerk Dashboard go to **Configure → Webhooks → Add Endpoint**.
+2. Set the endpoint URL to `https://<your-api-domain>/api/clerk`.
+3. Subscribe to `user.created`, `user.updated` and `user.deleted`.
+4. Copy the **Signing Secret** into `CLERK_WEBHOOK_SECRET`.
+5. **Local development:** Clerk cannot reach `localhost`, so expose your API with a tunnel such as [ngrok](https://ngrok.com) or Cloudflare Tunnel (`ngrok http 5000`) and use that public URL.
 
-CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+### Stripe (payment confirmation)
+1. In the Stripe Dashboard (test mode) add an endpoint `https://<your-api-domain>/api/stripe` listening for `payment_intent.succeeded`.
+2. Copy its signing secret into `STRIPE_WEBHOOK_SECRET`.
+3. **Local development:** use the [Stripe CLI](https://docs.stripe.com/stripe-cli):
+   ```bash
+   stripe listen --forward-to localhost:5000/api/stripe
+   ```
+   and use the `whsec_...` value it prints.
+4. Pay with the test card `4242 4242 4242 4242`, any future expiry date and any CVC.
 
-SENDER_EMAIL=your_sender_email
-SMTP_USER=your_smtp_username
-SMTP_PASS=your_smtp_password
+---
 
-STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+## ☁️ Deployment
 
-Never commit real API keys, database credentials, webhook secrets, or SMTP passwords to GitHub.
+Both apps include a `vercel.json`, so they can be deployed as **two separate Vercel projects** from the same repo:
 
-🚀 Local Development Setup
+| Project  | Root directory | Notes                                                                                   |
+| -------- | -------------- | --------------------------------------------------------------------------------------- |
+| API      | `server`       | Uses `@vercel/node` and routes every request to `server.js`. Add all server env vars.   |
+| Frontend | `client`       | Build command `yarn build`, output `dist`. The rewrite rule makes React Router deep links work. Add the client env vars. |
 
-1. Clone the repository
+After deploying:
+1. Set `VITE_BACKEND_URL` on the frontend to the deployed API URL (and redeploy).
+2. Update the Clerk and Stripe webhook endpoints to the production API URL.
+3. Switch Clerk and Stripe from test keys to live keys when you are ready to go live.
 
-git clone https://github.com/your-username/hotel-booking-app.git
-cd hotel-booking-app
+---
 
-2. Install frontend dependencies
+## 🛣️ Roadmap & Known Limitations
 
-cd client
-npm install
+QuickStay is a working end-to-end project. These are the areas to improve next:
 
-3. Configure client environment
+**Backend**
+- [ ] **Authorization on rooms:** `toggle-availability` only checks that the user is signed in; add a check that the room belongs to the caller's hotel. Also guard `GET /api/rooms/owner` for users without a hotel.
+- [ ] **Booking status workflow:** the `status` field (`pending` / `confirmed` / `cancelled`) exists but is never updated; cancelled bookings should stop blocking availability, and a cancel endpoint is missing.
+- [ ] **Availability edge case:** the overlap check is inclusive, so a same-day check-out/check-in turnover is treated as a conflict.
+- [ ] **Stripe webhook hardening:** return immediately after a failed signature check; remove the duplicate, unused `stripeWebhooks` function inside `bookingController.js` (the handler in `stripeWebhooks.js` is the one mounted).
+- [ ] **Schema naming:** rename `totelPrice` → `totalPrice` (requires a small data migration).
+- [ ] **Security:** restrict CORS to the frontend origin and add rate limiting / input validation (e.g. `zod` or `express-validator`).
+- [ ] **Race conditions:** wrap availability check + booking creation in a transaction to prevent double-booking under concurrent requests.
 
-Create:
+**Frontend**
+- [ ] Wire the **check-in / check-out / guests** fields in the hero search form into the room search.
+- [ ] Replace static values (ratings, "200+ reviews", offers, newsletter, testimonials) with real data.
+- [ ] Use `VITE_CURRENCY` everywhere instead of the hard-coded `$` in room cards and room lists.
+- [ ] Redirect unauthenticated users to the Clerk sign-in instead of navigating to `/login`, which has no route.
+- [ ] Use `<Link>` instead of `<a href>` in the navbar to avoid full page reloads; give "Experience" and "About" real targets.
+- [ ] Replace the fixed 8-second `Loader` delay with polling for the booking's payment status.
 
-client/.env
+**Features & quality**
+- [ ] Reviews and ratings, booking cancellation, owner-side booking management, room editing/deletion.
+- [ ] More cities / dynamic city list (currently Dubai, Singapore, New York, London).
+- [ ] Automated tests (Jest / Supertest for the API, Vitest / React Testing Library for the UI) and CI.
+- [ ] Add `.env.example` files and a `LICENSE` file to the repository.
 
-and add the required frontend variables.
+---
 
-4. Install backend dependencies
+## 🤝 Contributing
 
-cd ../server
-npm install
+Contributions, issues and feature requests are welcome!
 
-5. Configure server environment
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m "Add amazing feature"`
+4. Push the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
-Create:
+---
 
-server/.env
+## 📄 License
 
-and add MongoDB, Clerk, Cloudinary, SMTP, and Stripe credentials.
+This project is licensed under the **MIT License** (as declared in `server/package.json`). Add a `LICENSE` file to the repository root to make this explicit on GitHub.
 
-6. Start the backend
+---
 
-cd server
-npm run server
+## 👤 Author
 
-The backend defaults to:
+**Ayush Verma**
 
-http://localhost:5000
+- GitHub: [@Ayush-verma25](https://github.com/Ayush-verma25)
 
-7. Start the frontend
-
-Open another terminal:
-
-cd client
-npm run dev
-
-Vite will provide the local frontend URL.
-
-🔔 Stripe Webhook Configuration
-
-For local development, configure Stripe to send webhook events to:
-
-http://localhost:5000/api/stripe
-
-The backend expects the Stripe webhook route to receive the raw JSON request body so that Stripe signature verification can work correctly.
-
-Set the webhook signing secret in:
-
-STRIPE_WEBHOOK_SECRET=your_webhook_secret
-
-Use Stripe test mode while developing.
-
-📧 Email Notifications
-
-After a booking is created, the backend uses Nodemailer to send a booking confirmation email containing information such as:
-
-Booking ID
-
-Hotel name
-
-Location
-
-Check-in date
-
-Check-out date
-
-Total booking amount
-
-SMTP configuration is controlled through the server environment variables.
-
-🖼️ Image Uploads
-
-Hotel owners can upload up to four images when creating a room.
-
-The upload flow is:
-
-React FormData
-     ↓
-Multer
-     ↓
-Cloudinary
-     ↓
-Secure Image URLs
-     ↓
-MongoDB Room Document
-
-Only the resulting image URLs are stored in MongoDB.
-
-📊 Owner Dashboard
-
-The hotel owner dashboard provides:
-
-Total bookings
-
-Total revenue
-
-Recent bookings
-
-Guest names
-
-Room information
-
-Payment status
-
-Owners can also manage room availability from the Room Listings section.
-
-🧪 Recommended Testing Checklist
-
-Before deploying, test the following:
-
-Authentication
-
-New Clerk user is synchronized to MongoDB
-
-Login/logout works
-
-Protected API requests reject unauthenticated users
-
-Hotel owner role is applied after hotel registration
-
-Hotel Management
-
-Hotel registration works
-
-Duplicate hotel registration is rejected
-
-Room creation works
-
-Image uploads work
-
-Room availability toggle works
-
-Booking
-
-Invalid dates are rejected
-
-Past check-in dates are rejected
-
-Overlapping bookings are rejected
-
-Booking total is calculated correctly
-
-User can view their bookings
-
-Payments
-
-Stripe Checkout session is created
-
-User cannot pay for another user's booking
-
-Already-paid booking cannot be paid again
-
-Stripe webhook signature is verified
-
-Successful payment updates isPaid
-
-Email
-
-Booking confirmation email is sent
-
-SMTP configuration works
-
-Email failures are handled appropriately
-
-🔎 Code Review Notes & Recommended Improvements
-
-The current implementation is functional, but there are a few areas worth improving before presenting the project as production-ready.
-
-1. Rename totelPrice
-
-The booking model currently uses:
-
-totelPrice
-
-This should be renamed to:
-
-totalPrice
-
-and updated consistently across controllers and frontend components.
-
-2. Consolidate Stripe webhook implementations
-
-The project currently contains Stripe webhook logic in both:
-
-server/controllers/bookingController.js
-server/controllers/stripeWebhooks.js
-
-It would be cleaner to maintain a single webhook implementation.
-
-Also standardize on one Stripe event flow, preferably checkout.session.completed when using Checkout Sessions.
-
-3. Strengthen authorization
-
-Some owner-specific endpoints rely on the authenticated Clerk user but do not consistently enforce the user's database role.
-
-Recommended approach:
-
-authenticate user
-      ↓
-verify role === "hotelOwner"
-      ↓
-verify resource belongs to current owner
-      ↓
-perform operation
-
-4. Prevent booking race conditions
-
-Availability is checked before creating a booking. Two requests arriving at almost the same time could theoretically both pass the availability check.
-
-For a production booking system, consider stronger concurrency/locking strategies and appropriate database indexes.
-
-5. Validate request payloads
-
-Add schema validation using a library such as Zod or Joi for:
-
-Hotel registration
-
-Room creation
-
-Booking creation
-
-Payment requests
-
-This improves API reliability and security.
-
-6. Improve error handling
-
-Use a centralized Express error-handling middleware instead of repeating similar try/catch response patterns throughout controllers.
-
-7. Add rate limiting
-
-Public endpoints such as availability checks should be protected with rate limiting in a production deployment.
-
-8. Improve database references
-
-The current models store several references as String. If MongoDB ObjectIds are used for those relationships, using:
-
-type: mongoose.Schema.Types.ObjectId,
-ref: "ModelName"
-
-would make the data model more idiomatic and improve relationship handling.
-
-🌐 Deployment
-
-The repository already includes Vercel configuration files for both client and server.
-
-Typical deployment architecture:
-
-                ┌──────────────────┐
-                │     Vercel       │
-                │ React Frontend   │
-                └────────┬─────────┘
-                         │
-                         │ REST API
-                         ▼
-                ┌──────────────────┐
-                │     Vercel       │
-                │ Node/Express API │
-                └────────┬─────────┘
-                         │
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-      MongoDB         Stripe       Cloudinary
-          │
-          ▼
-       User/Hotel/
-       Room/Booking
-
-For production deployment, configure the frontend backend URL and all server-side secrets through the hosting provider's environment-variable settings.
-
-🔒 Security Checklist
-
-Keep .env files out of Git
-
-Never expose STRIPE_SECRET_KEY
-
-Never expose CLERK_SECRET_KEY
-
-Never expose CLOUDINARY_API_SECRET
-
-Never expose SMTP passwords
-
-Verify Clerk webhook signatures
-
-Verify Stripe webhook signatures
-
-Validate authenticated ownership before payment operations
-
-Validate uploaded files
-
-Add rate limiting for public APIs
-
-Use HTTPS in production
-
-💡 Resume / Portfolio Description
-
-You can describe this project on your resume as:
-
-Hotel Booking Platform — MERN StackDeveloped a full-stack hotel booking platform using React, Node.js, Express.js, and MongoDB with Clerk authentication, Stripe Checkout payments, Cloudinary image management, and Nodemailer email notifications. Implemented hotel-owner registration, room management, availability checking, booking workflows, payment status synchronization through Stripe webhooks, and an owner dashboard for booking and revenue tracking.
-
-Suggested Resume Keywords
-
-MERN Stack
-React.js
-Node.js
-Express.js
-MongoDB
-Mongoose
-REST APIs
-Clerk Authentication
-Stripe Checkout
-Stripe Webhooks
-Cloudinary
-Nodemailer
-Multer
-JWT / Authentication Concepts
-Role-Based Access
-Hotel Booking System
-Payment Gateway Integration
-API Integration
-Responsive UI
-Vite
-Tailwind CSS
-CRUD Operations
-Database Design
-Third-Party API Integration
-
-👨‍💻 Author
-
-Ayush Verma
-
-MERN Stack / Full Stack Developer
-
-📄 License
-
-This project is licensed under the MIT License.
+If you found this project helpful, please consider giving it a ⭐ on GitHub!
